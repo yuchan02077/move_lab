@@ -1,6 +1,6 @@
 import React from 'react';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
-import { VictoryPie } from 'victory-native';
+import { PieChart } from 'react-native-chart-kit';
 
 export default function ExploreScreen() {
   const historyData = [
@@ -12,9 +12,27 @@ export default function ExploreScreen() {
   ];
 
   const chartData = [
-    { x: '유산소', y: 34 },
-    { x: '근력', y: 32 },
-    { x: '근지구력', y: 34 },
+    {
+      name: '유산소',
+      population: 34,
+      color: '#89CFF0',
+      legendFontColor: '#000',
+      legendFontSize: 14,
+    },
+    {
+      name: '근력 운동',
+      population: 32,
+      color: '#6495ED',
+      legendFontColor: '#000',
+      legendFontSize: 14,
+    },
+    {
+      name: '근지구력',
+      population: 34,
+      color: '#D8BFD8',
+      legendFontColor: '#000',
+      legendFontSize: 14,
+    },
   ];
 
   return (
@@ -34,19 +52,23 @@ export default function ExploreScreen() {
         />
       </View>
 
-      <Text style={styles.chartTitle}>📊 운동 비율 차트</Text>
-      <VictoryPie
+      <Text style={styles.chartTitle}>🧩 운동 분포 차트</Text>
+      <PieChart
         data={chartData}
-        colorScale={['#89CFF0', '#6495ED', '#D8BFD8']}
-        labels={({ datum }: any) => `${datum.x}\n${datum.y}%`}
-        labelRadius={({ innerRadius }: any) => innerRadius + 30}
-        innerRadius={60}
-        padAngle={3}
-        style={{
-          labels: { fill: '#333', fontSize: 14, fontWeight: '600', textAlign: 'center' },
-        }}
         width={320}
-        height={260}
+        height={220}
+        chartConfig={{
+          backgroundColor: '#FFF1F4',
+          backgroundGradientFrom: '#FFF1F4',
+          backgroundGradientTo: '#FFF1F4',
+          color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+        }}
+        accessor="population"
+        backgroundColor="transparent"
+        paddingLeft="15"
+        center={[10, 0]}
+        // 퍼센트, 숫자 제거
+        // absolute
       />
     </View>
   );
@@ -56,11 +78,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFF1F4',
-    alignItems: 'center',
     paddingTop: 60,
+    alignItems: 'center',
   },
   header: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: 'bold',
     color: '#D35D6E',
     marginBottom: 20,
@@ -95,7 +117,7 @@ const styles = StyleSheet.create({
   chartTitle: {
     fontSize: 16,
     fontWeight: '600',
-    marginBottom: 14,
+    marginBottom: 10,
     color: '#444',
   },
 });
