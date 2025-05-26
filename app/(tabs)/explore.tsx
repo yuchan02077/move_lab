@@ -1,56 +1,30 @@
 import React from 'react';
-import { Dimensions, FlatList, StyleSheet, Text, View } from 'react-native';
-import { PieChart } from 'react-native-chart-kit';
-
-const screenWidth = Dimensions.get('window').width;
+import { FlatList, StyleSheet, Text, View } from 'react-native';
+import { VictoryPie } from 'victory-native';
 
 export default function ExploreScreen() {
-  const data = [
+  const historyData = [
     { name: '걷기', duration: 30 },
     { name: '달리기', duration: 30 },
     { name: '스쿼트', duration: 20 },
     { name: '플랭크', duration: 2 },
-    { name: '플랭크', duration: 3 },
+    { name: '자전거', duration: 3 },
   ];
 
-  // 퍼센트 계산용 전체 시간
-  const totalTime = 34 + 32 + 34;
-
-  const pieData = [
-    {
-      name: '유산소',
-      population: 34,
-      color: '#89CFF0',
-      legendFontColor: '#000',
-      legendFontSize: 12,
-    },
-    {
-      name: '근력 운동',
-      population: 32,
-      color: '#6495ED',
-      legendFontColor: '#000',
-      legendFontSize: 12,
-    },
-    {
-      name: '근지구력',
-      population: 34,
-      color: '#D8BFD8',
-      legendFontColor: '#000',
-      legendFontSize: 12,
-    },
-  ].map(item => ({
-    ...item,
-    name: `${item.name} (${Math.round((item.population / totalTime) * 100)}%)`,
-  }));
+  const chartData = [
+    { x: '유산소', y: 34 },
+    { x: '근력', y: 32 },
+    { x: '근지구력', y: 34 },
+  ];
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>운동 히스토리</Text>
+      <Text style={styles.header}>🏃‍♀️ 운동 히스토리</Text>
 
       <View style={styles.historyBox}>
-        <Text style={styles.subHeader}>일주일동안</Text>
+        <Text style={styles.subHeader}>📅 지난 7일간 기록</Text>
         <FlatList
-          data={data}
+          data={historyData}
           renderItem={({ item }) => (
             <Text style={styles.listItem}>
               • {item.name} <Text style={styles.bold}>{item.duration}분</Text>
@@ -60,22 +34,19 @@ export default function ExploreScreen() {
         />
       </View>
 
-      <PieChart
-        data={pieData}
-        width={screenWidth - 40}
-        height={220}
-        chartConfig={{
-          backgroundColor: '#FFF1F4',
-          backgroundGradientFrom: '#FFF1F4',
-          backgroundGradientTo: '#FFF1F4',
-          color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+      <Text style={styles.chartTitle}>📊 운동 비율 차트</Text>
+      <VictoryPie
+        data={chartData}
+        colorScale={['#89CFF0', '#6495ED', '#D8BFD8']}
+        labels={({ datum }: any) => `${datum.x}\n${datum.y}%`}
+        labelRadius={({ innerRadius }: any) => innerRadius + 30}
+        innerRadius={60}
+        padAngle={3}
+        style={{
+          labels: { fill: '#333', fontSize: 14, fontWeight: '600', textAlign: 'center' },
         }}
-        accessor="population"
-        backgroundColor="transparent"
-        paddingLeft="20"
-        center={[0, 0]}
-        hasLegend={true}
-        absolute
+        width={320}
+        height={260}
       />
     </View>
   );
@@ -85,8 +56,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFF1F4',
-    paddingTop: 60,
     alignItems: 'center',
+    paddingTop: 60,
   },
   header: {
     fontSize: 24,
@@ -95,24 +66,36 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   historyBox: {
-    backgroundColor: '#DFF3FE',
+    backgroundColor: '#E0F7FA',
     padding: 20,
-    borderRadius: 20,
+    borderRadius: 16,
     marginBottom: 30,
     width: '85%',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 5,
   },
   subHeader: {
     fontWeight: 'bold',
     fontSize: 16,
+    color: '#333',
     marginBottom: 10,
     alignSelf: 'center',
   },
   listItem: {
     fontSize: 16,
-    marginVertical: 2,
-    color: '#3CB371',
+    marginVertical: 4,
+    color: '#008080',
   },
   bold: {
     fontWeight: 'bold',
+    color: '#444',
+  },
+  chartTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 14,
+    color: '#444',
   },
 });
