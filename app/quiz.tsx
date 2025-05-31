@@ -1,10 +1,29 @@
+// app/QuizScreen.tsx
+import { LinearGradient } from 'expo-linear-gradient'; // 그라데이션
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import quizData from './quiz_data.json'; // 경로는 app 폴더 내에 있어야 함
+import {
+  Alert,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import quizData from './quiz_data.json'; // 반드시 app 폴더 내 quiz_data.json 경로 확인
+
+interface QuizItem {
+  question: string;
+  answer: boolean;
+  explanation: string;
+}
 
 export default function QuizScreen() {
-  const [quiz, setQuiz] = useState({ question: '', answer: true, explanation: '' });
+  const [quiz, setQuiz] = useState<QuizItem>({
+    question: '',
+    answer: true,
+    explanation: '',
+  });
   const router = useRouter();
 
   useEffect(() => {
@@ -13,91 +32,173 @@ export default function QuizScreen() {
   }, []);
 
   const handleAnswer = (userAnswer: boolean) => {
-    const correct = userAnswer === quiz.answer;
+    const isCorrect = userAnswer === quiz.answer;
+    const title = isCorrect ? '🎉 정답!' : '❌ 오답!';
+    const correctText = quiz.answer ? '참' : '거짓';
+    const message = `정답은 “${correctText}”입니다.\n\n${quiz.explanation}`;
 
-    Alert.alert(
-      correct ? '정답!' : '땡!',
-      quiz.explanation,
-      [
-        {
-          text: '확인',
-          onPress: () => router.replace('/home'), // ✅ 홈 화면으로 이동
-        },
-      ]
-    );
+    Alert.alert(title, message, [
+      {
+        text: '확인',
+        onPress: () => router.replace('/home'),
+      },
+    ]);
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>오늘의 퀴즈</Text>
+    <LinearGradient
+      colors={['#FDEFF9', '#FFF5E6']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={styles.safeArea}
+    >
+      <View style={styles.container}>
+        {/* 제목 */}
+        <Text style={styles.title}>
+          오늘의 퀴즈 <Text style={styles.titleEmoji}>❓</Text>
+        </Text>
 
-      <View style={styles.speechBubble}>
-        <Text style={styles.questionText}>{`“${quiz.question}”`}</Text>
-      </View>
+        {/* 말풍선 */}
+        <View style={styles.bubbleContainer}>
+          <View style={styles.bubble}>
+            <Text style={styles.questionText}>{quiz.question}</Text>
+            {/* 말풍선 꼬리 */}
+            <View style={styles.bubbleTail} />
+          </View>
+        </View>
 
-      <View style={styles.buttonRow}>
-        <TouchableOpacity onPress={() => handleAnswer(true)} style={[styles.choiceButton, styles.correctButton]}>
-          <Text style={styles.choiceText}>⭕</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => handleAnswer(false)} style={[styles.choiceButton, styles.wrongButton]}>
-          <Text style={styles.choiceText}>❌</Text>
-        </TouchableOpacity>
+        {/* 버튼 영역 */}
+        <View style={styles.buttonRow}>
+          <TouchableOpacity
+            style={[styles.choiceButton, styles.correctButton]}
+            onPress={() => handleAnswer(true)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.choiceEmoji}>⭕</Text>
+            <Text style={styles.choiceLabel}>참</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.choiceButton, styles.wrongButton]}
+            onPress={() => handleAnswer(false)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.choiceEmoji}>❌</Text>
+            <Text style={styles.choiceLabel}>거짓</Text>
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+  },
   container: {
     flex: 1,
-    backgroundColor: '#FFF1F4',
+    paddingHorizontal: 24,
+    // ─── 전체를 아래로 내리기 위한 여백 추가 ───
+    marginTop: Platform.OS === 'android' ? 100 : 80,
     alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
   },
+
+  // 제목
   title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#444',
-    marginBottom: 30,
-  },
-  speechBubble: {
-    backgroundColor: '#fff',
-    borderWidth: 3,
-    borderColor: '#000',
-    padding: 20,
-    borderRadius: 20,
-    maxWidth: '90%',
-    marginBottom: 40,
-  },
-  questionText: {
-    fontSize: 16,
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#333333',
+    marginBottom: 24,
     textAlign: 'center',
-    lineHeight: 24,
-    color: '#333',
   },
+  titleEmoji: {
+    fontSize: 28,
+  },
+
+  // 말풍선 컨테이너 (센터 정렬)
+  bubbleContainer: {
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 48,
+  },
+  // 말풍선 본체
+  bubble: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: '#DDDDDD',
+    paddingVertical: 24,
+    paddingHorizontal: 20,
+    maxWidth: '90%',
+    // 그림자 (iOS)
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    // 그림자 (Android)
+    elevation: 8,
+  },
+  // 말풍선 꼬리
+  bubbleTail: {
+    position: 'absolute',
+    bottom: -12,
+    left: '50%',
+    marginLeft: -12,
+    width: 24,
+    height: 24,
+    backgroundColor: '#FFFFFF',
+    borderBottomColor: '#DDDDDD',
+    borderBottomWidth: 2,
+    borderRightColor: '#DDDDDD',
+    borderRightWidth: 2,
+    borderBottomRightRadius: 6,
+    transform: [{ rotate: '45deg' }],
+  },
+
+  questionText: {
+    fontSize: 18,
+    color: '#222222',
+    lineHeight: 28,
+    textAlign: 'center',
+    flexWrap: 'wrap',
+  },
+
+  // 버튼 영역
   buttonRow: {
     flexDirection: 'row',
-    gap: 40,
+    justifyContent: 'space-between',
+    width: '100%',
+    paddingHorizontal: 20,
   },
   choiceButton: {
-    width: 80,
-    height: 80,
-    borderRadius: 20,
+    flex: 1,
+    marginHorizontal: 10,
+    paddingVertical: 16,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#888',
-    shadowOffset: { width: 2, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
+    // 그림자 (iOS)
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    // 그림자 (Android)
+    elevation: 6,
   },
   correctButton: {
-    backgroundColor: '#ccd8ff',
+    backgroundColor: '#CDEAFE',
   },
   wrongButton: {
-    backgroundColor: '#ffd8d8',
+    backgroundColor: '#FAD1D1',
   },
-  choiceText: {
+  choiceEmoji: {
     fontSize: 36,
+    marginBottom: 4,
+  },
+  choiceLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333333',
   },
 });
