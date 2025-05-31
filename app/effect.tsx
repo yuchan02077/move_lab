@@ -1,14 +1,14 @@
 // app/effect.tsx
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const effectTexts: { [key: string]: string[] } = {
   걷기: [
     '1. 심장박동이 빨라져 몸 전체에 더 많은 혈액과 산소 공급',
     '2. 심장이 더 튼튼해지고 혈관이 유연해져 고혈압 및 심혈관 질환 예방 효과',
     '3. 20분 이상 지속하면 지방 대사가 활성화되어 체지방 감소에 도움',
-    '4. 하체 근지구력 강화 및 세로토닌·엔도르핀 분비 촉진으로 스트레스 해소',
+    '4. 하체 근지구력 강화 및 세로토르닌·엔도르핀 분비 촉진으로 스트레스 해소',
   ],
   줄넘기: [
     '1. 전신 유산소 운동으로 심폐 기능 강화',
@@ -44,78 +44,89 @@ const effectTexts: { [key: string]: string[] } = {
 
 export default function EffectScreen() {
   const { exercise } = useLocalSearchParams();
-  // TimerScreen에서 넘겨준 cleanExercise 그대로 사용
   const cleanExercise = (exercise as string) || '';
-
-  const effects = effectTexts[cleanExercise];
+  const effects = effectTexts[cleanExercise] || [];
+  const router = useRouter();
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>{cleanExercise}의 장점</Text>
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        {/* 운동명 제목 */}
+        <Text style={styles.title}>{cleanExercise}의 장점</Text>
 
-      <View style={styles.box}>
-        {effects ? (
-          effects.map((line, index) => (
-            <Text key={index} style={styles.text}>
-              {line}
+        {/* 효과 목록 */}
+        <View style={styles.box}>
+          {effects.length > 0 ? (
+            effects.map((line, index) => (
+              <Text key={index} style={styles.text}>
+                {line}
+              </Text>
+            ))
+          ) : (
+            <Text style={styles.text}>해당 운동 정보가 없습니다.</Text>
+          )}
+        </View>
+
+        {/* 선택된 운동별 일러스트/메시지(예시) */}
+        {cleanExercise === '걷기' && (
+          <View style={styles.illustration}>
+            <Text style={styles.illustrationText}>
+              🚶‍♂️ 꾸준한 걷기로 건강한 하루를 시작하세요!
             </Text>
-          ))
-        ) : (
-          <Text style={styles.text}>해당 운동 정보가 없습니다.</Text>
+          </View>
         )}
-      </View>
+        {cleanExercise === '줄넘기' && (
+          <View style={styles.illustration}>
+            <Text style={styles.illustrationText}>
+              🤸‍♀️ 줄넘기로 민첩함과 체력을 동시에 UP!
+            </Text>
+          </View>
+        )}
+        {cleanExercise === '러닝' && (
+          <View style={styles.illustration}>
+            <Text style={styles.illustrationText}>
+              🏃‍♂️ 러닝으로 심장도 튼튼하게, 기분도 상쾌하게!
+            </Text>
+          </View>
+        )}
+        {cleanExercise === '사이클' && (
+          <View style={styles.illustration}>
+            <Text style={styles.illustrationText}>
+              🚴‍♀️ 사이클로 하체 근력과 심폐 지구력을 동시에!
+            </Text>
+          </View>
+        )}
+        {cleanExercise === '스쿼트' && (
+          <View style={styles.illustration}>
+            <Text style={styles.illustrationText}>
+              🏋️‍♂️ 스쿼트로 탄탄한 하체와 코어를 완성하세요!
+            </Text>
+          </View>
+        )}
+        {cleanExercise === '플랭크' && (
+          <View style={styles.illustration}>
+            <Text style={styles.illustrationText}>
+              🧘‍♂️ 플랭크로 코어 근력과 자세 교정 효과를 누리세요!
+            </Text>
+          </View>
+        )}
 
-      {/* 선택된 운동별 일러스트 또는 추가 메시지 */}
-      {cleanExercise === '걷기' && (
-        <View style={styles.illustration}>
-          <Text style={styles.illustrationText}>
-            🚶‍♂️ 꾸준한 걷기로 건강한 하루를 시작하세요!
-          </Text>
-        </View>
-      )}
-      {cleanExercise === '줄넘기' && (
-        <View style={styles.illustration}>
-          <Text style={styles.illustrationText}>
-            🤸‍♀️ 줄넘기로 민첩함과 체력을 동시에 UP!
-          </Text>
-        </View>
-      )}
-      {cleanExercise === '러닝' && (
-        <View style={styles.illustration}>
-          <Text style={styles.illustrationText}>
-            🏃‍♂️ 러닝으로 심장도 튼튼하게, 기분도 상쾌하게!
-          </Text>
-        </View>
-      )}
-      {cleanExercise === '사이클' && (
-        <View style={styles.illustration}>
-          <Text style={styles.illustrationText}>
-            🚴‍♀️ 사이클로 하체 근력과 심폐 지구력을 동시에!
-          </Text>
-        </View>
-      )}
-      {cleanExercise === '스쿼트' && (
-        <View style={styles.illustration}>
-          <Text style={styles.illustrationText}>
-            🏋️‍♂️ 스쿼트로 탄탄한 하체와 코어를 완성하세요!
-          </Text>
-        </View>
-      )}
-      {cleanExercise === '플랭크' && (
-        <View style={styles.illustration}>
-          <Text style={styles.illustrationText}>
-            🧘‍♂️ 플랭크로 코어 근력과 자세 교정 효과를 누리세요!
-          </Text>
-        </View>
-      )}
-    </View>
+        {/* 돌아가기 버튼: 이전 화면(Timer)으로 복귀 */}
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <Text style={styles.backText}>돌아가기</Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
     backgroundColor: '#FFEFF1',
+  },
+  container: {
+    flex: 1,
     alignItems: 'center',
     paddingTop: 60,
     paddingHorizontal: 24,
@@ -147,5 +158,17 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#444',
     marginTop: 30,
+  },
+  backButton: {
+    marginTop: 40,
+    backgroundColor: '#84CFFF',
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+    borderRadius: 8,
+  },
+  backText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#000',
   },
 });
