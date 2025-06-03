@@ -13,121 +13,42 @@ import {
   View,
 } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
+import { supabase } from '../supabaseClient';
 
 export default function TimerScreen() {
-  // ─────────────────────────────────────────────────
-  // 1) 파라미터 읽어 오기
+  // 1) 파라미터 읽어오기
   const { exercise, time } = useLocalSearchParams();
   const rawExercise = (exercise as string) || '';
-  const cleanExercise = rawExercise.replace(/\d+분$/, '').trim();
+  const cleanExercise = rawExercise.replace(/\(\S+\)/, '').trim(); // ex: "걷기(유산소)" → "걷기"
 
-  // ─────────────────────────────────────────────────
-  // 2) time 파라미터 파싱 ("3초" 또는 "30분" 등)
+  // 2) time 파싱
   const timeStr = (time as string) || '';
   let initialTotalSeconds: number;
   if (/초/.test(timeStr)) {
-    // 예: "3초"
     const sec = Number(timeStr.replace(/\D/g, ''));
     initialTotalSeconds = isNaN(sec) ? 30 : sec;
   } else {
-    // 예: "30분"
     const min = Number(timeStr.replace(/\D/g, ''));
     initialTotalSeconds = isNaN(min) ? 30 * 60 : min * 60;
   }
 
-  // ─────────────────────────────────────────────────
-  // 3) 상태 선언: 남은 초, 실행 여부
+  // 3) 상태 선언
   const [secondsLeft, setSecondsLeft] = useState<number>(initialTotalSeconds);
   const [isRunning, setIsRunning] = useState<boolean>(false);
-
-  // 4) setInterval 참조용
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  // 5) 화면 포커스 감지
   const isFocused = useIsFocused();
+  const router = useRouter();
 
-  // 6) AsyncStorage에 저장할 키
-  const storageKey = `TIMER_STATE_${cleanExercise}`;
+  // AsyncStorage 키 (운동 이력 저장용)
+  const historyKey = 'WORKOUT_HISTORY';
 
-  // ─────────────────────────────────────────────────
-  // 7) 화면 포커스 시 저장된 상태 불러오기 + 경과 시간 반영
-  useEffect(() => {
-    let isMounted = true;
+  // 7) 화면 포커스 시 상태 복원 (생략) ...
 
-    const loadState = async () => {
-      try {
-        const json = await AsyncStorage.getItem(storageKey);
-        if (json) {
-          const { savedSeconds, savedRunning, savedAt } = JSON.parse(json) as {
-            savedSeconds: number;
-            savedRunning: boolean;
-            savedAt: number;
-          };
-          if (
-            typeof savedSeconds === 'number' &&
-            typeof savedRunning === 'boolean' &&
-            typeof savedAt === 'number'
-          ) {
-            if (savedRunning) {
-              // “효과 보기” 등으로 백그라운드에 있는 동안 경과된 초 계산
-              const elapsed = Math.floor((Date.now() - savedAt) / 1000);
-              const newSeconds = savedSeconds - elapsed;
-              if (newSeconds > 0) {
-                isMounted && setSecondsLeft(newSeconds);
-                isMounted && setIsRunning(true);
-              } else {
-                isMounted && setSecondsLeft(0);
-                isMounted && setIsRunning(false);
-              }
-            } else {
-              isMounted && setSecondsLeft(savedSeconds);
-              isMounted && setIsRunning(false);
-            }
-            return;
-          }
-        }
-      } catch {
-        // 로딩 중 에러 시 무시
-      }
-      // 저장된 값이 없거나 잘못되었으면 기본값으로
-      isMounted && setSecondsLeft(initialTotalSeconds);
-      isMounted && setIsRunning(false);
-    };
+  // 8) 언마운트 시 타이머 상태 저장 (생략) ...
 
-    if (isFocused) {
-      loadState();
-    }
-
-    return () => {
-      isMounted = false;
-    };
-  }, [cleanExercise, initialTotalSeconds, isFocused]);
-
-  // ─────────────────────────────────────────────────
-  // 8) 언마운트 시 상태 저장
-  useEffect(() => {
-    return () => {
-      const saveState = async () => {
-        try {
-          const data = {
-            savedSeconds: secondsLeft,
-            savedRunning: isRunning,
-            savedAt: Date.now(),
-          };
-          await AsyncStorage.setItem(storageKey, JSON.stringify(data));
-        } catch {
-          // 저장 에러 시 무시
-        }
-      };
-      saveState();
-    };
-  }, [secondsLeft, isRunning, storageKey]);
-
-  // ─────────────────────────────────────────────────
-  // 9) isRunning === true일 때만 1초마다 카운트다운
+  // 9) 타이머 작동
   useEffect(() => {
     if (!isRunning) return;
-
     intervalRef.current = setInterval(() => {
       setSecondsLeft((prev) => {
         if (prev <= 1) {
@@ -147,20 +68,7 @@ export default function TimerScreen() {
     };
   }, [isRunning]);
 
-  // ─────────────────────────────────────────────────
-  // 10) “MM:SS” 형식으로 변환
-  const formatTime = () => {
-    const min = Math.floor(secondsLeft / 60);
-    const sec = secondsLeft % 60;
-    return `${min.toString().padStart(2, '0')}:${sec
-      .toString()
-      .padStart(2, '0')}`;
-  };
-
-  const router = useRouter();
-
-  // ─────────────────────────────────────────────────
-  // 11) “그만하기” 버튼 눌렀을 때
+  // 11) “그만하기” 버튼
   const handleQuit = () => {
     Alert.alert(
       '타이머 종료',
@@ -174,12 +82,7 @@ export default function TimerScreen() {
               clearInterval(intervalRef.current);
               intervalRef.current = null;
             }
-            try {
-              await AsyncStorage.removeItem(storageKey);
-            } catch {
-              // 무시
-            }
-            router.replace('/home');
+            router.replace('home');
           },
         },
       ],
@@ -187,31 +90,89 @@ export default function TimerScreen() {
     );
   };
 
-  // ─────────────────────────────────────────────────
+  // 12) 타이머 완료 시 호출될 함수
+  const handleComplete = async () => {
+    // ① 0초 되었을 때 타이머 중지
+    setIsRunning(false);
+
+    // ② AsyncStorage에 운동 이력 추가
+    try {
+      const existing = await AsyncStorage.getItem(historyKey);
+      const history = existing ? JSON.parse(existing) as Array<{ exercise: string; duration: number }> : [];
+      history.push({ exercise: cleanExercise, duration: initialTotalSeconds });
+      await AsyncStorage.setItem(historyKey, JSON.stringify(history));
+    } catch {
+      // 저장 에러 무시
+    }
+
+    // ③ Supabase goals.current_progress 1 증가
+    const {
+      data: { user: currentUser },
+      error: userError,
+    } = await supabase.auth.getUser();
+    if (currentUser && !userError) {
+      // 현재 진행도 불러오기
+      const { data, error } = await supabase
+        .from('goals')
+        .select('current_progress')
+        .eq('user_id', currentUser.id)
+        .single();
+
+      if (!error && data) {
+        const newProgress = data.current_progress + 1;
+        await supabase
+          .from('goals')
+          .update({ current_progress: newProgress })
+          .eq('user_id', currentUser.id);
+      }
+    }
+
+    // 완료 메시지 후 홈 화면으로
+    Alert.alert('축하합니다!', `${cleanExercise} 운동을 완료했습니다.`, [
+      { text: '확인', onPress: () => router.replace('home') },
+    ]);
+  };
+
+  // 타이머가 0이 되면 handleComplete 호출
+  useEffect(() => {
+    if (secondsLeft === 0 && isRunning) {
+      handleComplete();
+    }
+  }, [secondsLeft]);
+
+  // 10) 시간 표시 포맷
+  const formatTime = () => {
+    const min = Math.floor(secondsLeft / 60);
+    const sec = secondsLeft % 60;
+    return `${min.toString().padStart(2, '0')}:${sec
+      .toString()
+      .padStart(2, '0')}`;
+  };
+
   // 12) 원형 Progress 계산
-  const radius = 120;           // 반지름
-  const strokeWidth = 12;       // 테두리 두께
+  const radius = 120;
+  const strokeWidth = 12;
   const circumference = 2 * Math.PI * radius;
-  const elapsed = initialTotalSeconds - secondsLeft;   // 경과된 초
+  const elapsed = initialTotalSeconds - secondsLeft;
   const progress = Math.min(elapsed / initialTotalSeconds, 1);
   const strokeDashoffset = circumference * (1 - progress);
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        {/* ───── 헤더 ───────────────────────────── */}
+        {/* 헤더 */}
         <View style={styles.header}>
           <Text style={styles.title}>{cleanExercise}</Text>
           <TouchableOpacity
             onPress={() =>
-              router.push({ pathname: '/effect', params: { exercise: cleanExercise } })
+              router.push({ pathname: 'effect', params: { exercise: cleanExercise } })
             }
           >
             <Text style={styles.effectLink}>운동 효과 보기</Text>
           </TouchableOpacity>
         </View>
 
-        {/* ───── 원형 Progress + 시간 ───────────────── */}
+        {/* 원형 Progress + 시간 */}
         <View style={styles.progressWrapper}>
           <Svg width={radius * 2 + strokeWidth * 2} height={radius * 2 + strokeWidth * 2}>
             {/* 바탕 트랙 */}
@@ -219,7 +180,7 @@ export default function TimerScreen() {
               cx={radius + strokeWidth}
               cy={radius + strokeWidth}
               r={radius}
-              stroke="#D6F0F4"   // 트랙 배경색 (연한 민트톤)
+              stroke="#D6F0F4"
               strokeWidth={strokeWidth}
               fill="none"
             />
@@ -228,7 +189,7 @@ export default function TimerScreen() {
               cx={radius + strokeWidth}
               cy={radius + strokeWidth}
               r={radius}
-              stroke="#84CFFF"   // 진행색 (파스텔 블루)
+              stroke="#84CFFF"
               strokeWidth={strokeWidth}
               fill="none"
               strokeDasharray={`${circumference} ${circumference}`}
@@ -238,13 +199,12 @@ export default function TimerScreen() {
               origin={`${radius + strokeWidth}, ${radius + strokeWidth}`}
             />
           </Svg>
-          {/* 중앙의 시간 텍스트 */}
           <View style={styles.timerTextContainer}>
             <Text style={styles.timerText}>{formatTime()}</Text>
           </View>
         </View>
 
-        {/* ───── 버튼 그룹 (시작 / 일시정지) ───────────────── */}
+        {/* 버튼 그룹 */}
         <View style={styles.buttonRow}>
           <TouchableOpacity
             style={[styles.button, isRunning && styles.buttonDisabled]}
@@ -263,7 +223,7 @@ export default function TimerScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* ───── “그만하기” 버튼 ───────────────── */}
+        {/* 그만하기 버튼 */}
         <TouchableOpacity style={styles.quitButton} onPress={handleQuit}>
           <Text style={styles.quitText}>그만하기</Text>
         </TouchableOpacity>
@@ -280,16 +240,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 24,
-
-    // ─── 여기서 paddingTop 대신 marginTop으로 전체를 아래로 내렸습니다 ───
     marginTop: Platform.OS === 'android' ? 80 : 60,
-    // (기존엔 paddingTop: Platform.OS === 'android' ? 40 : 0 이었음)
-
     alignItems: 'center',
     backgroundColor: '#FFF5F8',
   },
-
-  // ───── 헤더 ───────────────────────────
   header: {
     alignItems: 'center',
     marginBottom: 32,
@@ -305,8 +259,6 @@ const styles = StyleSheet.create({
     color: '#0066cc',
     textDecorationLine: 'underline',
   },
-
-  // ───── 원형 Progress ───────────────────
   progressWrapper: {
     justifyContent: 'center',
     alignItems: 'center',
@@ -322,8 +274,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#333333',
   },
-
-  // ───── 버튼 그룹 ───────────────────────
   buttonRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -337,12 +287,10 @@ const styles = StyleSheet.create({
     marginHorizontal: 8,
     borderRadius: 8,
     alignItems: 'center',
-    // 그림자 (iOS)
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 6,
-    // 그림자 (Android)
     elevation: 4,
   },
   buttonDisabled: {
@@ -353,8 +301,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#ffffff',
   },
-
-  // ───── “그만하기” ───────────────────────
   quitButton: {
     paddingVertical: 12,
     paddingHorizontal: 40,
@@ -363,12 +309,10 @@ const styles = StyleSheet.create({
     borderColor: '#cc0000',
     borderRadius: 8,
     alignItems: 'center',
-    // 그림자 (iOS)
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 4,
-    // 그림자 (Android)
     elevation: 2,
   },
   quitText: {

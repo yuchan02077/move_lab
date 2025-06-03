@@ -1,5 +1,5 @@
-// app/QuizScreen.tsx
-import { LinearGradient } from 'expo-linear-gradient'; // 그라데이션
+// app/quiz.tsx
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
@@ -10,7 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import quizData from './quiz_data.json'; // 반드시 app 폴더 내 quiz_data.json 경로 확인
+import quizData from './quiz_data.json';
 
 interface QuizItem {
   question: string;
@@ -40,7 +40,8 @@ export default function QuizScreen() {
     Alert.alert(title, message, [
       {
         text: '확인',
-        onPress: () => router.replace('/home'),
+        // 퀴즈 완료 후 Home 화면으로 이동
+        onPress: () => router.replace('home'),
       },
     ]);
   };
@@ -99,12 +100,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 24,
-    // ─── 전체를 아래로 내리기 위한 여백 추가 ───
     marginTop: Platform.OS === 'android' ? 100 : 80,
     alignItems: 'center',
   },
-
-  // 제목
   title: {
     fontSize: 28,
     fontWeight: '800',
@@ -115,14 +113,11 @@ const styles = StyleSheet.create({
   titleEmoji: {
     fontSize: 28,
   },
-
-  // 말풍선 컨테이너 (센터 정렬)
   bubbleContainer: {
     width: '100%',
     alignItems: 'center',
     marginBottom: 48,
   },
-  // 말풍선 본체
   bubble: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
@@ -131,15 +126,12 @@ const styles = StyleSheet.create({
     paddingVertical: 24,
     paddingHorizontal: 20,
     maxWidth: '90%',
-    // 그림자 (iOS)
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.1,
     shadowRadius: 10,
-    // 그림자 (Android)
     elevation: 8,
   },
-  // 말풍선 꼬리
   bubbleTail: {
     position: 'absolute',
     bottom: -12,
@@ -155,7 +147,6 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 6,
     transform: [{ rotate: '45deg' }],
   },
-
   questionText: {
     fontSize: 18,
     color: '#222222',
@@ -163,8 +154,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     flexWrap: 'wrap',
   },
-
-  // 버튼 영역
   buttonRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -178,12 +167,10 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    // 그림자 (iOS)
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 6,
-    // 그림자 (Android)
     elevation: 6,
   },
   correctButton: {

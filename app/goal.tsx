@@ -1,30 +1,76 @@
+// app/goal.tsx
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { supabase } from '../supabaseClient';
 
 export default function GoalScreen() {
   const router = useRouter();
-  const [selectedGoal, setSelectedGoal] = useState('');
-
-  const handleConfirm = () => {
-    if (selectedGoal) {
-      router.push('/quiz'); // 선택되었을 때만 퀴즈 화면으로 이동
-    } else {
-      alert('목표를 선택해주세요!');
-    }
-  };
+  const [selectedGoal, setSelectedGoal] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
 
   const goals = ['주 7회', '주 5회', '주 3회', '주 1회'];
 
+  const handleConfirm = async () => {
+    if (!selectedGoal) {
+      Alert.alert('목표를 선택해주세요!');
+      return;
+    }
+    setLoading(true);
+    const goalNumber = Number(selectedGoal.replace(/\D/g, ''));
+
+    // 현재 로그인된 사용자 정보
+    const {
+      data: { user: currentUser },
+      error: getUserError,
+    } = await supabase.auth.getUser();
+
+    if (getUserError || !currentUser) {
+      Alert.alert('로그인 필요', '목표를 저장하려면 로그인해주세요.');
+      setLoading(false);
+      return;
+    }
+
+    // goals 테이블에 upsert (이미 있으면 update, 없으면 insert)
+    const { error: upsertError } = await supabase
+      .from('goals')
+      .upsert({
+        user_id: currentUser.id,
+        daily_goal: goalNumber,
+        current_progress: 0, // 초기 진행도는 0
+      })
+      .eq('user_id', currentUser.id);
+
+    if (upsertError) {
+      console.error('goals 테이블 업서트 오류:', upsertError.message);
+      Alert.alert('오류', '목표 저장 중 문제가 발생했습니다.');
+      setLoading(false);
+      return;
+    }
+
+    // 목표 설정 후 퀴즈 화면으로 이동
+    router.replace('quiz');
+    setLoading(false);
+  };
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>이번주 목표 정하기</Text>
+      <Text style={styles.title}>오늘의 목표 정하기</Text>
 
       <View style={styles.goalBox}>
-        <Text style={styles.placeholder}>선택하세요</Text>
-        {goals.map((goal, index) => (
+        <Text style={[styles.placeholder, selectedGoal && styles.selectedText]}>
+          {selectedGoal || '선택하세요'}
+        </Text>
+        {goals.map((goal, idx) => (
           <TouchableOpacity
-            key={index}
+            key={idx}
             style={[
               styles.goalOption,
               selectedGoal === goal && styles.selectedOption,
@@ -36,10 +82,20 @@ export default function GoalScreen() {
         ))}
       </View>
 
-      <Text style={styles.description}>꾸준함이 중요해요 !!{'\n'}이룰 수 있는 목표 선정하기</Text>
+      <Text style={styles.description}>
+        자신에게 맞는 주간 목표 횟수를 선택하세요.
+      </Text>
 
-      <TouchableOpacity style={styles.confirmButton} onPress={handleConfirm}>
-        <Text style={styles.confirmText}>확인</Text>
+      <TouchableOpacity
+        style={[styles.confirmButton, loading && styles.buttonDisabled]}
+        onPress={handleConfirm}
+        disabled={loading}
+      >
+        {loading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.confirmText}>확인</Text>
+        )}
       </TouchableOpacity>
     </View>
   );
@@ -50,25 +106,29 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFF1F4',
     alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
+    padding: 24,
+    paddingTop: 60,
   },
   title: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#d00057',
-    marginBottom: 30,
+    marginBottom: 20,
   },
   goalBox: {
     width: '90%',
     backgroundColor: '#f3faff',
     borderRadius: 20,
     padding: 20,
-    marginBottom: 30,
+    marginBottom: 20,
   },
   placeholder: {
     color: '#aaa',
     marginBottom: 10,
+    fontSize: 16,
+  },
+  selectedText: {
+    color: '#000',
   },
   goalOption: {
     backgroundColor: '#e7f5ff',
@@ -94,6 +154,9 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 50,
     borderRadius: 25,
+  },
+  buttonDisabled: {
+    backgroundColor: '#ccc',
   },
   confirmText: {
     fontSize: 18,

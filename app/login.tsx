@@ -1,124 +1,183 @@
 // app/login.tsx
-
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getISOWeek } from 'date-fns';
-import { router } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { supabase } from '../supabaseClient'; // Supabase 인증 활용
 
 export default function LoginScreen() {
-  const [username, setUsername] = useState('');
+  const router = useRouter();
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
-    try {
-      const currentWeek = getISOWeek(new Date());
-      const savedWeek = await AsyncStorage.getItem('goalWeek');
-
-      // 주차 비교 후 이동
-      if (savedWeek !== currentWeek.toString()) {
-        await AsyncStorage.setItem('goalWeek', currentWeek.toString());
-        router.push('/goal'); // ✅ 목표 설정으로 이동
-      } else {
-        router.push('/quiz'); // ✅ 홈으로 이동
-      }
-    } catch (error) {
-      console.error('로그인 오류:', error);
+    if (!email || !password) {
+      Alert.alert('입력 오류', '이메일과 비밀번호를 모두 입력해주세요.');
+      return;
     }
-  };
-
-  const goToSignup = () => {
-    router.push('/signup');
+    setLoading(true);
+    // Supabase로 실제 로그인 시도
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      Alert.alert('로그인 실패', error.message);
+      setLoading(false);
+      return;
+    }
+    // 로그인 성공 → 목표 설정 화면으로 이동
+    router.replace('goal');
+    setLoading(false);
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.headerBubble}>
-        <Text style={styles.headerText}>sign in</Text>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.select({ ios: 'padding', android: 'height' })}
+    >
+      {/* 로고: MOVE / LAB */}
+      <View style={styles.logoContainer}>
+        <View style={[styles.row, styles.moveRow]}>
+          {['M', 'O', 'V', 'E'].map((char, i) => (
+            <View key={i} style={styles.circleSmall}>
+              <Text style={styles.circleTextSmall}>{char}</Text>
+            </View>
+          ))}
+        </View>
+        <View style={[styles.row, styles.labRow]}>
+          {['L', 'A', 'B'].map((char, i) => (
+            <View key={i} style={styles.circleSmall}>
+              <Text style={styles.circleTextSmall}>{char}</Text>
+            </View>
+          ))}
+        </View>
       </View>
 
-      <TextInput
-        style={styles.input}
-        placeholder="아이디"
-        placeholderTextColor="#ccc"
-        value={username}
-        onChangeText={setUsername}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="비밀번호"
-        placeholderTextColor="#ccc"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
+      <Text style={styles.title}>로그인</Text>
 
-      <TouchableOpacity onPress={goToSignup} style={styles.signupLink}>
-        <Text style={styles.signupText}>회원가입하기</Text>
-        <View style={styles.signupUnderline} />
+      {/* 입력 필드 */}
+      <View style={styles.inputContainer}>
+        <TextInput
+          style={styles.input}
+          placeholder="이메일"
+          placeholderTextColor="#888"
+          keyboardType="email-address"
+          autoCapitalize="none"
+          value={email}
+          onChangeText={setEmail}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="비밀번호"
+          placeholderTextColor="#888"
+          secureTextEntry
+          value={password}
+          onChangeText={setPassword}
+        />
+      </View>
+
+      {/* 로그인 버튼 */}
+      <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
+        <Text style={styles.buttonText}>{loading ? '로그인 중...' : '로그인하기'}</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.button} onPress={handleLogin}>
-        <Text style={styles.buttonText}>로그인</Text>
-      </TouchableOpacity>
-    </View>
+      {/* 회원가입 링크 */}
+      <View style={styles.signupContainer}>
+        <Text style={styles.signupText}>계정이 없으신가요?</Text>
+        <TouchableOpacity onPress={() => router.push('signup')}>
+          <Text style={styles.signupLink}>회원가입</Text>
+        </TouchableOpacity>
+      </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFF1F4',
+    backgroundColor: '#FEEFF1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  logoContainer: {
+    marginBottom: 40,
+  },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  moveRow: {
+    marginBottom: 6,
+    marginLeft: -24,
+  },
+  labRow: {
+    paddingLeft: 60,
+  },
+  circleSmall: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#000',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerBubble: {
-    backgroundColor: '#ffc3ec',
-    paddingHorizontal: 30,
-    paddingVertical: 12,
-    borderRadius: 40,
-    marginBottom: 30,
-    alignSelf: 'flex-start',
-    marginLeft: 40,
-  },
-  headerText: {
-    fontSize: 22,
+  circleTextSmall: {
+    color: '#fff',
     fontWeight: 'bold',
-    color: '#222',
-  },
-  input: {
-    width: '80%',
-    height: 50,
-    backgroundColor: '#f8f8f8',
-    borderRadius: 10,
-    paddingHorizontal: 15,
-    marginBottom: 15,
     fontSize: 16,
   },
+  title: {
+    fontSize: 26,
+    fontWeight: 'bold',
+    color: '#000',
+    marginBottom: 24,
+  },
+  inputContainer: {
+    width: '100%',
+  },
+  input: {
+    width: '100%',
+    height: 48,
+    borderWidth: 1,
+    borderColor: '#CCC',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    marginBottom: 16,
+    backgroundColor: '#FFF',
+    color: '#000',
+  },
   button: {
-    backgroundColor: '#84d1ff',
-    paddingVertical: 12,
-    paddingHorizontal: 60,
-    borderRadius: 25,
-    marginTop: 30,
+    width: '100%',
+    backgroundColor: '#DFF3FE',
+    paddingVertical: 14,
+    borderRadius: 20,
+    alignItems: 'center',
+    marginTop: 8,
   },
   buttonText: {
     fontSize: 18,
     fontWeight: 'bold',
+    color: '#000',
   },
-  signupLink: {
-    alignSelf: 'flex-end',
-    marginRight: 45,
-    marginBottom: 10,
+  signupContainer: {
+    flexDirection: 'row',
+    marginTop: 24,
   },
   signupText: {
-    fontSize: 12,
-    color: 'gray',
+    color: '#444',
+    marginRight: 6,
   },
-  signupUnderline: {
-    height: 1,
-    width: 60,
-    backgroundColor: 'gray',
-    marginTop: 2,
+  signupLink: {
+    color: '#007AFF',
+    fontWeight: 'bold',
   },
 });

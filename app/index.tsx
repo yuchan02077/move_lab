@@ -1,3 +1,4 @@
+// app/index.tsx
 import { useRouter } from 'expo-router';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -29,10 +30,10 @@ export default function StartScreen() {
         당신의 운동, 이제 과학으로 설명됩니다.
       </Text>
 
-      {/* 시작하기 버튼 */}
+      {/* 시작하기 버튼: 로그인 화면으로 이동 */}
       <TouchableOpacity
         style={styles.button}
-        onPress={() => router.push('/login')}
+        onPress={() => router.push('login')}
       >
         <Text style={styles.buttonText}>시작하기</Text>
       </TouchableOpacity>
