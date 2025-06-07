@@ -1,3 +1,4 @@
+'use client';    
 // app/timer.tsx
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useIsFocused } from '@react-navigation/native';
@@ -13,7 +14,7 @@ import {
   View,
 } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
-import { supabase } from '../supabaseClient';
+import { supabase } from '../../supabaseClient';
 
 export default function TimerScreen() {
   // 1) 파라미터 읽어오기

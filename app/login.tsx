@@ -1,7 +1,9 @@
-// app/login.tsx
+'use client';
+
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
@@ -9,9 +11,9 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
-import { supabase } from '../supabaseClient'; // Supabase 인증 활용
+import { supabase } from '../supabaseClient';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -19,22 +21,30 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    // 앱 마운트 시 세션 확인 (디버깅용)
+    supabase.auth.getSession()
+      .then(({ data: { session }, error }) => {
+        console.log('Session test:', session, error);
+      })
+      .catch(err => {
+        console.log('Session test error:', err);
+      });
+  }, []);
+
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('입력 오류', '이메일과 비밀번호를 모두 입력해주세요.');
-      return;
+      return Alert.alert('입력 오류', '이메일과 비밀번호를 모두 입력해주세요.');
     }
     setLoading(true);
-    // Supabase로 실제 로그인 시도
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      Alert.alert('로그인 실패', error.message);
-      setLoading(false);
-      return;
-    }
-    // 로그인 성공 → 목표 설정 화면으로 이동
-    router.replace('goal');
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
+
+    if (error) {
+      return Alert.alert('로그인 실패', error.message);
+    }
+    // 로그인 성공 시 목표 설정 화면으로 이동
+    router.replace('/goal');
   };
 
   return (
@@ -42,7 +52,7 @@ export default function LoginScreen() {
       style={styles.container}
       behavior={Platform.select({ ios: 'padding', android: 'height' })}
     >
-      {/* 로고: MOVE / LAB */}
+      {/* 로고: MOVE/LAB */}
       <View style={styles.logoContainer}>
         <View style={[styles.row, styles.moveRow]}>
           {['M', 'O', 'V', 'E'].map((char, i) => (
@@ -85,13 +95,17 @@ export default function LoginScreen() {
 
       {/* 로그인 버튼 */}
       <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
-        <Text style={styles.buttonText}>{loading ? '로그인 중...' : '로그인하기'}</Text>
+        {loading ? (
+          <ActivityIndicator color="#000" />
+        ) : (
+          <Text style={styles.buttonText}>로그인하기</Text>
+        )}
       </TouchableOpacity>
 
       {/* 회원가입 링크 */}
       <View style={styles.signupContainer}>
         <Text style={styles.signupText}>계정이 없으신가요?</Text>
-        <TouchableOpacity onPress={() => router.push('signup')}>
+        <TouchableOpacity onPress={() => router.push('/signup')}>
           <Text style={styles.signupLink}>회원가입</Text>
         </TouchableOpacity>
       </View>

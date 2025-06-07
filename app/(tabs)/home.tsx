@@ -1,98 +1,77 @@
-// app/home.tsx
-import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import { supabase } from '../../supabaseClient';
+'use client';
 
-interface Goal {
-  daily_goal: number;
-  current_progress: number;
-}
+import { useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { supabase } from '../../supabaseClient';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [goalData, setGoalData] = useState<Goal | null>(null);
-
-  // 로그인된 유저의 Goal을 불러오는 함수
-  const fetchGoal = async () => {
-    setLoading(true);
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
-
-    if (userError || !user) {
-      // 로그인 정보가 없으면 다시 로그인 화면으로
-      router.replace('login');
-      return;
-    }
-
-    const { data, error } = await supabase
-      .from('goals')
-      .select('daily_goal, current_progress')
-      .eq('user_id', user.id)
-      .single();
-
-    if (error || !data) {
-      // 목표가 설정되지 않았다면 Goal 화면으로
-      router.replace('goal');
-      return;
-    }
-    setGoalData(data as Goal);
-    setLoading(false);
-  };
+  const [dailyGoal, setDailyGoal] = useState<number | null>(null);
+  const [currentProgress, setCurrentProgress] = useState<number>(0);
 
   useEffect(() => {
-    fetchGoal();
+    (async () => {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session) {
+        console.log('Session error or no session:', sessionError);
+        return;
+      }
+      const userId = session.user.id;
+
+      const { data, error } = await supabase
+        .from('goals')
+        .select('daily_goal, current_progress')
+        .eq('user_id', userId)
+        .single();
+      if (error) {
+        console.log('Error loading goal:', error);
+        return;
+      }
+
+      setDailyGoal(data.daily_goal);
+      setCurrentProgress(data.current_progress);
+    })();
   }, []);
 
-  if (loading) {
-    return (
-      <View style={[styles.container, { justifyContent: 'center' }]}>
-        <ActivityIndicator size="large" color="#84CFFF" />
-      </View>
-    );
-  }
-
-  const remaining = Math.max(goalData!.daily_goal - goalData!.current_progress, 0);
+  const remaining =
+    typeof dailyGoal === 'number'
+      ? Math.max(dailyGoal - currentProgress, 0)
+      : null;
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>오늘의 목표</Text>
-      <Text style={styles.goalText}>
-        총 {goalData!.daily_goal}회 중 {goalData!.current_progress}회 달성
-      </Text>
-      <Text style={styles.remainingText}>남은 횟수: {remaining}회</Text>
+      <Text style={styles.title}>Move Lab</Text>
 
-      {/* 운동 시작 버튼 */}
+      {remaining !== null && (
+        <Text style={styles.progressText}>
+          {remaining > 0
+            ? `목표까지 ${remaining}개 남았습니다`
+            : '목표 달성! 🎉'}
+        </Text>
+      )}
+
+      <Text style={styles.subtitle}>이제 시작해볼까요?</Text>
+
       <TouchableOpacity
-        style={styles.buttonStart}
-        onPress={() => router.push({ pathname: 'workout' })}
+        style={[styles.button, styles.startButton]}
+        onPress={() => router.push('/workout')}
       >
-        <Text style={styles.buttonText}>운동 시작하기</Text>
+        <Text style={styles.buttonText}>운동 시작하기 🏃‍♂️🏋️‍♀️🧘‍♀️</Text>
       </TouchableOpacity>
 
-      {/* 운동 이력 보기 버튼 */}
       <TouchableOpacity
-        style={styles.buttonHistory}
-        onPress={() => router.push('explore')}
+        style={[styles.button, styles.historyButton]}
+        onPress={() => router.push('/history')}
       >
-        <Text style={styles.buttonText}>운동 이력 보기</Text>
+        <Text style={styles.buttonText}>운동 히스토리 보러가기</Text>
       </TouchableOpacity>
 
-      {/* 로그아웃 버튼 */}
       <TouchableOpacity
-        style={styles.buttonLogout}
+        style={[styles.button, styles.logoutButton]}
         onPress={async () => {
           await supabase.auth.signOut();
-          router.replace('login');
+          router.replace('/login');
         }}
       >
         <Text style={styles.buttonText}>로그아웃</Text>
@@ -104,67 +83,45 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFF1F4',
+    backgroundColor: '#FEEFF1',
     alignItems: 'center',
     paddingTop: 80,
-    paddingHorizontal: 30,
   },
   title: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: 'bold',
-    color: '#D35D6E',
-    marginBottom: 20,
+    color: '#000',
+    marginBottom: 12,
   },
-  goalText: {
-    fontSize: 18,
-    color: '#333',
+  progressText: {
+    fontSize: 16,
+    color: '#444',
     marginBottom: 8,
   },
-  remainingText: {
+  subtitle: {
     fontSize: 18,
-    color: '#FF7969',
-    marginBottom: 30,
+    color: '#6B7280',
+    marginBottom: 24,
   },
-  buttonStart: {
-    backgroundColor: '#C1EAC5',
-    borderRadius: 20,
+  button: {
+    width: '80%',
     paddingVertical: 14,
-    paddingHorizontal: 20,
-    marginBottom: 15,
-    width: '100%',
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
+    borderRadius: 20,
+    alignItems: 'center',
+    marginVertical: 8,
   },
-  buttonHistory: {
-    backgroundColor: '#F7B8D3',
-    borderRadius: 20,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    marginBottom: 15,
-    width: '100%',
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
+  startButton: {
+    backgroundColor: '#A8E6CF',
   },
-  buttonLogout: {
-    backgroundColor: '#6B4B4B',
-    borderRadius: 20,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    marginTop: 30,
-    width: '100%',
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
+  historyButton: {
+    backgroundColor: '#FFB6C1',
+  },
+  logoutButton: {
+    backgroundColor: '#6B4E4E',
   },
   buttonText: {
     fontSize: 16,
-    color: '#fff',
     fontWeight: 'bold',
-    textAlign: 'center',
+    color: '#000',
   },
 });

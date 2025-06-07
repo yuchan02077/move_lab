@@ -1,19 +1,9 @@
-// app/_layout.tsx
-import { Buffer } from 'buffer';
-import 'react-native-url-polyfill/auto';
-global.Buffer = Buffer;
+// ── app/(tabs)/_layout.tsx ──
+'use client';
 
-import { Slot } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
+import { Tabs } from 'expo-router';
+import React from 'react';
 
-export default function RootLayout() {
-  return (
-    <View style={styles.container}>
-      <Slot />
-    </View>
-  );
+export default function TabsLayout() {
+  return <Tabs screenOptions={{ headerShown: false }} />;
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-});

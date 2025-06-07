@@ -1,3 +1,4 @@
+'use client';    
 // app/effect.tsx
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';

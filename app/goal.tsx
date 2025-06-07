@@ -1,3 +1,4 @@
+'use client';    
 // app/goal.tsx
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';

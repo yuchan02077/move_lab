@@ -1,3 +1,4 @@
+'use client';
 // app/quiz.tsx
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
